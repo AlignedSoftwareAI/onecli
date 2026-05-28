@@ -168,10 +168,22 @@ model Agent {
   agentSecrets        AgentSecret[]
   agentAppConnections AgentAppConnection[]
   policyRules         PolicyRule[]
+  agentAllowlist      AgentAllowlist[]
 
   @@unique([projectId, identifier])
   @@index([projectId])
   @@map("agents")
+}
+
+model AgentAllowlist {
+  id        String   @id @default(uuid())
+  agentId   String   @map("agent_id")
+  domain    String   // exact hostname or *.suffix wildcard
+  createdAt DateTime @default(now()) @map("created_at")
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@map("agent_allowlists")
 }
 
 model Secret {

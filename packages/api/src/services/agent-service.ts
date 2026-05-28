@@ -384,3 +384,41 @@ export const updateAgentAppConnections = async (
     ),
   ]);
 };
+
+// ── Agent allowlist ──────────────────────────────────────────────────────
+
+export const listAgentAllowlist = async (projectId: string, agentId: string) => {
+  const agent = await db.agent.findFirst({ where: { id: agentId, projectId } });
+  if (!agent) throw new ServiceError("NOT_FOUND", "Agent not found");
+  return db.agentAllowlist.findMany({
+    where: { agentId },
+    select: { id: true, domain: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+};
+
+export const addAgentAllowlistEntry = async (
+  projectId: string,
+  agentId: string,
+  domain: string,
+) => {
+  const agent = await db.agent.findFirst({ where: { id: agentId, projectId } });
+  if (!agent) throw new ServiceError("NOT_FOUND", "Agent not found");
+  const trimmed = domain.trim().toLowerCase();
+  if (!trimmed) throw new ServiceError("BAD_REQUEST", "Domain cannot be empty");
+  return db.agentAllowlist.create({ data: { agentId, domain: trimmed } });
+};
+
+export const deleteAgentAllowlistEntry = async (
+  projectId: string,
+  agentId: string,
+  entryId: string,
+) => {
+  const agent = await db.agent.findFirst({ where: { id: agentId, projectId } });
+  if (!agent) throw new ServiceError("NOT_FOUND", "Agent not found");
+  const entry = await db.agentAllowlist.findFirst({
+    where: { id: entryId, agentId },
+  });
+  if (!entry) throw new ServiceError("NOT_FOUND", "Allowlist entry not found");
+  await db.agentAllowlist.delete({ where: { id: entryId } });
+};

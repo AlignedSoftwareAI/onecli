@@ -17,6 +17,18 @@ pub(super) fn proxy_auth_required() -> Response<axum::body::Body> {
     resp
 }
 
+/// 403 Forbidden — domain is not in the agent's allowlist.
+pub(super) fn domain_not_allowed() -> Response<axum::body::Body> {
+    let body = r#"{"error":"domain_not_allowed","message":"This domain is not in the agent allowlist. Add it in the OneCLI dashboard under Agents → Allowlist."}"#;
+    let mut resp = Response::new(axum::body::Body::from(body));
+    *resp.status_mut() = StatusCode::FORBIDDEN;
+    resp.headers_mut().insert(
+        "content-type",
+        HeaderValue::from_static("application/json"),
+    );
+    resp
+}
+
 /// Response body type used by [`super::forward::forward_request`].
 pub(crate) type ForwardBody<S> = Either<Full<Bytes>, S>;
 

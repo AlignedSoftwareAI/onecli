@@ -15,6 +15,9 @@ import {
   updateAgentSecrets,
   getAgentAppConnections,
   updateAgentAppConnections,
+  getAgentAllowlist,
+  addAllowlistEntry,
+  deleteAllowlistEntry,
 } from "@/lib/actions/agents";
 import { invalidateGatewayCache } from "@/lib/actions/gateway-cache";
 
@@ -158,5 +161,42 @@ export const useUpdateAgentConnections = () => {
       invalidateGatewayCache();
     },
     onError: () => toast.error("Failed to update agent connections"),
+  });
+};
+
+export const useAgentAllowlist = (agentId: string) =>
+  useQuery({
+    queryKey: queryKeys.agents.allowlist(agentId),
+    queryFn: () => getAgentAllowlist(agentId),
+  });
+
+export const useAddAllowlistEntry = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, domain }: { agentId: string; domain: string }) =>
+      addAllowlistEntry(agentId, domain),
+    onSuccess: (_data, { agentId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.agents.allowlist(agentId) });
+      invalidateGatewayCache();
+    },
+    onError: () => toast.error("Failed to add domain to allowlist"),
+  });
+};
+
+export const useDeleteAllowlistEntry = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      entryId,
+    }: {
+      agentId: string;
+      entryId: string;
+    }) => deleteAllowlistEntry(agentId, entryId),
+    onSuccess: (_data, { agentId }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.agents.allowlist(agentId) });
+      invalidateGatewayCache();
+    },
+    onError: () => toast.error("Failed to remove domain from allowlist"),
   });
 };

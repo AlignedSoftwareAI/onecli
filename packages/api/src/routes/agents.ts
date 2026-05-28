@@ -13,6 +13,9 @@ import {
   updateAgentSecretMode,
   getAgentSecrets,
   updateAgentSecrets,
+  listAgentAllowlist,
+  addAgentAllowlistEntry,
+  deleteAgentAllowlistEntry,
 } from "../services/agent-service";
 import {
   createAgentSchema,
@@ -161,6 +164,42 @@ export const agentRoutes = () => {
     );
     invalidateGatewayCache(c.req.raw);
     return c.json({ success: true });
+  });
+
+  // GET /agents/:agentId/allowlist
+  app.get("/:agentId/allowlist", async (c) => {
+    const auth = c.get("auth");
+    const agentId = c.req.param("agentId");
+    const entries = await listAgentAllowlist(requireProjectId(auth), agentId);
+    return c.json(entries);
+  });
+
+  // POST /agents/:agentId/allowlist
+  app.post("/:agentId/allowlist", async (c) => {
+    const auth = c.get("auth");
+    const agentId = c.req.param("agentId");
+    const body = await c.req.json().catch(() => null);
+    const domain: unknown = body?.domain;
+    if (typeof domain !== "string" || !domain.trim()) {
+      return c.json({ error: "domain is required" }, 400);
+    }
+    const entry = await addAgentAllowlistEntry(
+      requireProjectId(auth),
+      agentId,
+      domain,
+    );
+    invalidateGatewayCache(c.req.raw);
+    return c.json(entry, 201);
+  });
+
+  // DELETE /agents/:agentId/allowlist/:entryId
+  app.delete("/:agentId/allowlist/:entryId", async (c) => {
+    const auth = c.get("auth");
+    const agentId = c.req.param("agentId");
+    const entryId = c.req.param("entryId");
+    await deleteAgentAllowlistEntry(requireProjectId(auth), agentId, entryId);
+    invalidateGatewayCache(c.req.raw);
+    return c.body(null, 204);
   });
 
   return app;

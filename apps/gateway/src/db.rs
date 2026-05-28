@@ -407,6 +407,23 @@ pub(crate) async fn update_vault_connection_data(
     Ok(())
 }
 
+// ── Agent allowlist queries ─────────────────────────────────────────────
+
+/// Find all allowlist domain patterns for a given agent.
+/// An empty result means no allowlist is configured (all domains permitted).
+pub(crate) async fn find_agent_allowlist(
+    pool: &PgPool,
+    agent_id: &str,
+) -> Result<Vec<String>> {
+    let rows: Vec<(String,)> =
+        sqlx::query_as(r#"SELECT domain FROM agent_allowlists WHERE agent_id = $1"#)
+            .bind(agent_id)
+            .fetch_all(pool)
+            .await
+            .context("querying agent_allowlists")?;
+    Ok(rows.into_iter().map(|(d,)| d).collect())
+}
+
 /// Delete a vault connection for a project + provider pair.
 pub(crate) async fn delete_vault_connection(
     pool: &PgPool,

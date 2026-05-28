@@ -15,6 +15,9 @@ import {
   updateAgentSecrets as updateAgentSecretsService,
   getAgentAppConnections as getAgentAppConnectionsService,
   updateAgentAppConnections as updateAgentAppConnectionsService,
+  listAgentAllowlist as listAgentAllowlistService,
+  addAgentAllowlistEntry as addAgentAllowlistEntryService,
+  deleteAgentAllowlistEntry as deleteAgentAllowlistEntryService,
 } from "@onecli/api/services/agent-service";
 import {
   withAudit,
@@ -171,6 +174,49 @@ export const updateAgentAppConnections = async (
       action: AUDIT_ACTIONS.UPDATE,
       service: AUDIT_SERVICES.AGENT,
       metadata: { agentId, appConnectionCount: appConnectionIds.length },
+    }),
+  );
+};
+
+// ── Allowlist actions ─────────────────────────────────────────────────────
+
+export const getAgentAllowlist = async (agentId: string) => {
+  const { projectId } = await resolveProjectContext();
+  return listAgentAllowlistService(projectId, agentId);
+};
+
+export const addAllowlistEntry = async (
+  agentId: string,
+  domain: string,
+): Promise<void> => {
+  const { userId, userEmail, projectId } = await resolveProjectContext();
+  return withAudit(
+    () => addAgentAllowlistEntryService(projectId, agentId, domain),
+    (entry) => ({
+      projectId,
+      userId,
+      userEmail,
+      action: AUDIT_ACTIONS.CREATE,
+      service: AUDIT_SERVICES.AGENT,
+      metadata: { agentId, domain: entry.domain },
+    }),
+  );
+};
+
+export const deleteAllowlistEntry = async (
+  agentId: string,
+  entryId: string,
+): Promise<void> => {
+  const { userId, userEmail, projectId } = await resolveProjectContext();
+  return withAudit(
+    () => deleteAgentAllowlistEntryService(projectId, agentId, entryId),
+    () => ({
+      projectId,
+      userId,
+      userEmail,
+      action: AUDIT_ACTIONS.DELETE,
+      service: AUDIT_SERVICES.AGENT,
+      metadata: { agentId, entryId },
     }),
   );
 };

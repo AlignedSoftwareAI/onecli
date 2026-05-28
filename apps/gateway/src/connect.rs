@@ -51,6 +51,9 @@ pub(crate) struct ConnectResponse {
     /// Organization policy mode: "allow" (default) or "deny" (block by default).
     #[serde(default)]
     pub policy_mode: String,
+    /// Per-agent domain allowlist. Empty = no restriction. Non-empty = only listed domains pass.
+    #[serde(default)]
+    pub agent_allowlist: Vec<String>,
 }
 
 /// Result of per-request app connection resolution.
@@ -194,6 +197,10 @@ impl PolicyEngine {
         }
         .to_string();
 
+        let agent_allowlist = db::find_agent_allowlist(&self.pool, &agent.id)
+            .await
+            .unwrap_or_default();
+
         Ok(ConnectResponse {
             intercept: has_rules || access_restricted,
             injection_rules,
@@ -207,6 +214,7 @@ impl PolicyEngine {
             access_restricted,
             plan,
             policy_mode: agent.policy_mode.clone(),
+            agent_allowlist,
         })
     }
 
@@ -994,7 +1002,7 @@ pub(crate) async fn resolve_from_cache(
 
 /// Check if a requested hostname matches a secret's host pattern.
 /// Supports exact match and wildcard prefix (`*.example.com` matches `api.example.com`).
-fn host_matches(request_host: &str, pattern: &str) -> bool {
+pub(crate) fn host_matches(request_host: &str, pattern: &str) -> bool {
     if request_host == pattern {
         return true;
     }

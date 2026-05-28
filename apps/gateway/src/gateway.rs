@@ -522,7 +522,7 @@ async fn handle_connect(
     // Resolve at CONNECT time for the intercept decision and agent identity.
     // DB injection/policy rules are NOT frozen here — they're re-resolved
     // per request inside the MITM tunnel from cache (see mitm.rs).
-    let (mut intercept, project_id, organization_id, agent_id, agent_name, agent_identifier) =
+    let (mut intercept, project_id, organization_id, agent_id, agent_name, agent_identifier, agent_allowlist) =
         if let Some(ref token) = agent_token {
             match connect::resolve(token, &hostname, &state.policy_engine, &*state.cache).await {
                 Ok(resp) => (
@@ -532,6 +532,7 @@ async fn handle_connect(
                     resp.agent_id,
                     resp.agent_name,
                     resp.agent_identifier,
+                    resp.agent_allowlist,
                 ),
                 Err(ConnectError::InvalidToken) => {
                     warn!(peer = %peer_addr, host = %host, "CONNECT rejected: invalid agent token");
@@ -543,8 +544,18 @@ async fn handle_connect(
                 }
             }
         } else {
-            (false, None, None, None, None, None)
+            (false, None, None, None, None, None, vec![])
         };
+
+    // Enforce per-agent domain allowlist (if configured).
+    if !agent_allowlist.is_empty()
+        && !agent_allowlist
+            .iter()
+            .any(|p| connect::host_matches(&hostname, p))
+    {
+        warn!(peer = %peer_addr, host = %host, "CONNECT rejected: domain not in agent allowlist");
+        return Ok(response::domain_not_allowed());
+    }
 
     // Vault fallback: resolved at CONNECT time and passed to mitm as a frozen
     // fallback. Vault queries are expensive (network calls to Bitwarden), so
@@ -677,6 +688,17 @@ async fn handle_http_proxy(
     } else {
         connect::ConnectResponse::default()
     };
+
+    // Enforce per-agent domain allowlist (if configured).
+    if !resolved.agent_allowlist.is_empty()
+        && !resolved
+            .agent_allowlist
+            .iter()
+            .any(|p| connect::host_matches(&hostname, p))
+    {
+        warn!(peer = %peer_addr, host = %authority, "HTTP proxy rejected: domain not in agent allowlist");
+        return Ok(response::domain_not_allowed());
+    }
 
     // Per-request app connection disambiguation
     let mut resolved_finalizer: Option<crate::apps::RequestFinalizer> = None;

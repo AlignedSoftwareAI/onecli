@@ -8,6 +8,7 @@ import {
   KeyRound,
   Pencil,
   Star,
+  ShieldCheck,
 } from "lucide-react";
 import { Card } from "@onecli/ui/components/card";
 import { Button } from "@onecli/ui/components/button";
@@ -51,6 +52,7 @@ import {
 } from "@/hooks/use-agents";
 import type { SecretMode } from "@onecli/api/services/agent-service";
 import { ManageAccessDialog } from "./manage-access-dialog";
+import { ManageAllowlistDialog } from "./manage-allowlist-dialog";
 
 interface AgentCardProps {
   agent: {
@@ -79,6 +81,7 @@ export const AgentCard = ({ agent, autoOpenAccess }: AgentCardProps) => {
   const [secretsDialogOpen, setSecretsDialogOpen] = useState(
     autoOpenAccess ?? false,
   );
+  const [allowlistDialogOpen, setAllowlistDialogOpen] = useState(false);
 
   const handleRegenerate = () => regenerateMutation.mutate(agent.id);
 
@@ -132,6 +135,14 @@ export const AgentCard = ({ agent, autoOpenAccess }: AgentCardProps) => {
               <KeyRound className="size-3" />
               {accessLabel}
             </button>
+            <button
+              type="button"
+              onClick={() => setAllowlistDialogOpen(true)}
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+            >
+              <ShieldCheck className="size-3" />
+              Allowlist
+            </button>
           </div>
         </div>
 
@@ -154,6 +165,10 @@ export const AgentCard = ({ agent, autoOpenAccess }: AgentCardProps) => {
             <DropdownMenuItem onSelect={() => setSecretsDialogOpen(true)}>
               <KeyRound className="size-4" />
               Manage access
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setAllowlistDialogOpen(true)}>
+              <ShieldCheck className="size-4" />
+              Domain allowlist
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setRotateDialogOpen(true)}>
               <RotateCw className="size-4" />
@@ -297,6 +312,12 @@ export const AgentCard = ({ agent, autoOpenAccess }: AgentCardProps) => {
         agent={agent}
         open={secretsDialogOpen}
         onOpenChange={setSecretsDialogOpen}
+      />
+
+      <ManageAllowlistDialog
+        agent={agent}
+        open={allowlistDialogOpen}
+        onOpenChange={setAllowlistDialogOpen}
       />
     </Card>
   );

@@ -11,6 +11,8 @@ export const queryKeys = {
       [...queryKeys.agents.all(), agentId, "secrets"] as const,
     connections: (agentId: string) =>
       [...queryKeys.agents.all(), agentId, "connections"] as const,
+    allowlist: (agentId: string) =>
+      [...queryKeys.agents.all(), agentId, "allowlist"] as const,
   },
   secrets: {
     all: () => ["secrets", ...scope()] as const,
